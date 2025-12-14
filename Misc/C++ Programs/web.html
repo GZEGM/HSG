@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Đồ Thị Hình Trái Tim</title>
+  </head>
+  <body>
+    <canvas id="heartCanvas" width="400" height="400"></canvas>
+    <script>
+      const canvas = document.getElementById("heartCanvas");
+      const ctx = canvas.getContext("2d");
+      const width = canvas.width;
+      const height = canvas.height;
+
+      // Tọa độ giữa canvas
+      const centerX = width / 2;
+      const centerY = height / 2;
+
+      // Tỷ lệ phóng to đồ thị
+      const scale = 20;
+
+      // Vẽ đồ thị hình trái tim
+      ctx.beginPath();
+      for (let t = 0; t < Math.PI * 2; t += 0.01) {
+        const x = 16 * Math.pow(Math.sin(t), 3);
+        const y =
+          13 * Math.cos(t) -
+          5 * Math.cos(2 * t) -
+          2 * Math.cos(3 * t) -
+          Math.cos(4 * t);
+
+        // Vẽ từng điểm và chuyển đổi tọa độ (x, y) sang tọa độ trên canvas
+        ctx.lineTo(centerX + x * scale, centerY - y * scale);
+      }
+      ctx.fillStyle = "red";
+      ctx.fill();
+      ctx.closePath();
+    </script>
+  </body>
+</html>

@@ -2,6 +2,7 @@ name: Deploy Web with Token
 on:
   push:
     branches: ["main"] # Chạy mỗi khi bạn push code lên branch main
+  workflow_dispatch:
 
 permissions:
   contents: read

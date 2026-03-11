@@ -1,0 +1,32 @@
+#include <iostream>
+
+using namespace std;
+
+int UCLN(int a, int b)
+{
+    if (a == b)
+        return a;
+    if (a > b)
+        return UCLN(a - b, b);
+    return UCLN(a, b - a);
+}
+
+int main()
+{
+
+    int n;
+    cin >> n;
+
+    int arr[n];
+    for (int i = 0; i < n; i++)
+        cin >> arr[i];
+
+    int result = arr[0];
+
+    for (int i = 1; i < n; i++)
+        result = UCLN(result, arr[i]);
+
+    cout << result;
+
+    return 0;
+}

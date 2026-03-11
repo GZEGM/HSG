@@ -1,0 +1,2253 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes"
+    />
+    <title>DIENKON HSG Code Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- PrismJS - Syntax Highlighting -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-pascal.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"></script>
+    <!-- JSZip for folder export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- FileSaver for downloading -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- PDF.js for PDF preview -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+      @import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap");
+
+      * {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        overflow: hidden;
+        height: 100dvh;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      pre[class*="language-"] {
+        margin: 0 !important;
+        border-radius: 0 !important;
+        background: #0f172a !important;
+        height: 100%;
+      }
+      code[class*="language-"] {
+        font-family: "Fira Code", monospace !important;
+        font-size: 14px !important;
+        line-height: 1.6 !important;
+      }
+
+      .loader {
+        border-top-color: #6366f1;
+        animation: spinner 0.8s ease-in-out infinite;
+      }
+      @keyframes spinner {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .tree-item-active {
+        background-color: #eef2ff;
+        color: #4338ca;
+        font-weight: 600;
+        border-right: 3px solid #4338ca;
+      }
+
+      /* Terminal */
+      #admin-console {
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transform: translateY(110%);
+        backdrop-filter: blur(12px);
+        visibility: hidden;
+      }
+      #admin-console.active {
+        transform: translateY(0);
+        visibility: visible;
+      }
+
+      /* Filter Panel */
+      #filter-panel {
+        transition: all 0.3s ease;
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+      }
+      #filter-panel.active {
+        max-height: 800px;
+        opacity: 1;
+        overflow: visible;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+      .status-online {
+        background-color: #10b981;
+        box-shadow: 0 0 10px #10b981;
+      }
+      .status-warning {
+        background-color: #f59e0b;
+        box-shadow: 0 0 10px #f59e0b;
+      }
+      .status-offline {
+        background-color: #ef4444;
+        box-shadow: 0 0 10px #ef4444;
+      }
+
+      #context-menu {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        min-width: 220px;
+        max-width: 90vw;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        border-radius: 14px;
+        padding: 8px;
+      }
+
+      .menu-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        font-size: 13px;
+        font-weight: 500;
+        color: #475569;
+        cursor: pointer;
+        border-radius: 10px;
+        transition: all 0.2s;
+      }
+      .menu-item:hover {
+        background: #4f46e5;
+        color: white;
+      }
+      .menu-item:active {
+        background: #4f46e5;
+        color: white;
+      }
+
+      .item-hidden-admin {
+        opacity: 0.5;
+        filter: grayscale(0.8);
+        background: #fff1f2 !important;
+        border: 1px dashed #fda4af !important;
+      }
+
+      .shake {
+        animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+      }
+      @keyframes shake {
+        10%,
+        90% {
+          transform: translate3d(-1px, 0, 0);
+        }
+        20%,
+        80% {
+          transform: translate3d(2px, 0, 0);
+        }
+        30%,
+        50%,
+        70% {
+          transform: translate3d(-4px, 0, 0);
+        }
+        40%,
+        60% {
+          transform: translate3d(4px, 0, 0);
+        }
+      }
+
+      .algorithm-tag {
+        background: #e0e7ff;
+        color: #4338ca;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      .error-message {
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+        padding: 1rem;
+        border-radius: 1rem;
+        text-align: center;
+      }
+
+      /* File Explorer Styles */
+      .file-grid-item {
+        transition: all 0.2s ease;
+      }
+      .file-grid-item.selected {
+        border: 2px solid #6366f1;
+        background-color: #eef2ff;
+        transform: scale(1.02);
+      }
+
+      /* Mobile Responsive */
+      @media (max-width: 768px) {
+        #sidebar {
+          position: fixed;
+          left: -100%;
+          top: 72px;
+          bottom: 0;
+          width: 85%;
+          z-index: 40;
+          transition: left 0.3s ease;
+          box-shadow: 10px 0 20px rgba(0, 0, 0, 0.1);
+        }
+        #sidebar.mobile-open {
+          left: 0;
+        }
+        #content-area {
+          width: 100%;
+        }
+        #admin-console {
+          left: 8px;
+          right: 8px;
+          width: auto;
+          max-width: none;
+        }
+        .filter-panel-grid {
+          grid-template-columns: 1fr !important;
+        }
+        #main-view {
+          padding: 1rem !important;
+        }
+      }
+
+      /* View Toggle */
+      .view-options {
+        display: flex;
+        gap: 4px;
+        background: #f1f5f9;
+        padding: 2px;
+        border-radius: 12px;
+      }
+      .view-option {
+        padding: 8px 12px;
+        border-radius: 10px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .view-option.active {
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        font-weight: 600;
+      }
+
+      /* PDF Viewer */
+      .pdf-viewer {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background: #52525b;
+      }
+      .pdf-page {
+        margin: 10px auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      /* Quick Access Bar */
+      .quick-access {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 8px 0;
+        margin-bottom: 16px;
+        -webkit-overflow-scrolling: touch;
+      }
+      .quick-access-item {
+        background: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        border: 1px solid #e2e8f0;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .quick-access-item:hover {
+        background: #4f46e5;
+        color: white;
+        border-color: #4f46e5;
+      }
+      .quick-access-item.active {
+        background: #4f46e5;
+        color: white;
+        border-color: #4f46e5;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-slate-50 text-slate-900 selection:bg-indigo-100"
+    oncontextmenu="return false;"
+  >
+    <!-- Context Menu -->
+    <div id="context-menu">
+      <div
+        class="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase border-b border-slate-100 mb-1 truncate"
+        id="menu-target-name"
+      >
+        ...
+      </div>
+      <div class="menu-item" onclick="adminAction('rename')">
+        <i data-lucide="edit-3" size="14"></i> Đổi tên
+      </div>
+      <div class="menu-item" onclick="adminAction('note')">
+        <i data-lucide="message-square" size="14"></i> Ghi chú
+      </div>
+      <div
+        class="menu-item border-t border-slate-100 my-1 pt-1"
+        onclick="adminAction('toggle')"
+      >
+        <i data-lucide="eye-off" size="14" id="toggle-icon"></i>
+        <span id="toggle-text">Ẩn/Hiện</span>
+      </div>
+      <div class="menu-item" onclick="exportFolder(contextTarget)">
+        <i data-lucide="folder-output" size="14"></i> Xuất thư mục
+      </div>
+      <div class="menu-item" onclick="copyPath(contextTarget)">
+        <i data-lucide="link" size="14"></i> Sao chép đường dẫn
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <!-- <div
+      id="loading-overlay"
+      class="fixed inset-0 z-[100] bg-slate-900 flex items-center justify-center"
+    >
+      <div class="text-center">
+        <div
+          class="loader w-16 h-16 border-4 border-slate-700 rounded-full mx-auto mb-6"
+        ></div>
+        <p
+          class="text-indigo-400 font-mono tracking-widest uppercase animate-pulse"
+        >
+          Initializing DIENKON OS...
+        </p>
+      </div>
+    </div> -->
+
+    <!-- Header -->
+    <header
+      class="bg-slate-900 text-white shadow-2xl relative z-50 border-b border-slate-800"
+    >
+      <div
+        class="max-w-[1800px] mx-auto px-4 md:px-6 py-2 md:py-3 flex flex-wrap items-center justify-between gap-2"
+      >
+        <div
+          class="flex items-center gap-3 cursor-pointer group"
+          onclick="goHome()"
+        >
+          <button class="md:hidden p-2" onclick="toggleMobileSidebar(event)">
+            <i data-lucide="menu" size="20"></i>
+          </button>
+          <div
+            class="p-2 md:p-2.5 bg-indigo-600 rounded-xl md:rounded-2xl group-hover:rotate-12 transition-transform shadow-xl shadow-indigo-500/20"
+          >
+            <i data-lucide="zap" size="20" class="fill-white"></i>
+          </div>
+          <div class="hidden sm:block">
+            <h1
+              class="text-lg md:text-xl font-black tracking-tighter leading-none italic"
+            >
+              DIENKON <span class="text-indigo-400 font-light">HSG</span>
+            </h1>
+          </div>
+        </div>
+
+        <div
+          class="relative flex-1 max-w-full md:max-w-[400px] lg:max-w-[500px] order-last md:order-none w-full md:w-auto mt-2 md:mt-0"
+        >
+          <i
+            data-lucide="search"
+            class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+            size="16"
+          ></i>
+          <input
+            type="text"
+            id="search-input"
+            placeholder="Tìm kiếm (Ctrl + K)"
+            class="w-full bg-slate-800/50 border border-slate-700 text-white placeholder-slate-500 rounded-xl md:rounded-2xl py-2 pl-9 pr-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm transition-all focus:bg-slate-800"
+            oninput="handleSearch(this.value)"
+          />
+        </div>
+
+        <div class="flex items-center gap-2 md:gap-4">
+          <div
+            id="api-status"
+            class="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-slate-800/50 rounded-xl border border-slate-700"
+          >
+            <span class="status-dot status-offline" id="status-dot"></span>
+            <span class="text-[10px] font-mono text-slate-400" id="status-text"
+              >CONNECTING...</span
+            >
+          </div>
+          <button
+            onclick="toggleFilterPanel()"
+            class="p-2 md:p-3 hover:bg-indigo-600 rounded-xl md:rounded-2xl transition-all group shadow-lg relative"
+            title="Bộ lọc"
+          >
+            <i
+              data-lucide="filter"
+              size="18"
+              class="text-slate-400 group-hover:text-white"
+            ></i>
+            <span
+              id="filter-badge"
+              class="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full hidden"
+            ></span>
+          </button>
+          <button
+            onclick="toggleAdminPanel()"
+            class="p-2 md:p-3 hover:bg-indigo-600 rounded-xl md:rounded-2xl transition-all group shadow-lg"
+            title="Terminal (`)"
+          >
+            <i
+              data-lucide="terminal"
+              size="18"
+              class="text-slate-400 group-hover:text-white"
+            ></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter Panel -->
+      <div
+        id="filter-panel"
+        class="bg-slate-800/95 border-t border-slate-700 px-4 md:px-6 py-4"
+      >
+        <div
+          class="max-w-[1800px] mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 filter-panel-grid"
+        >
+          <!-- Lọc theo thời gian -->
+          <div class="space-y-2">
+            <label
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+              >Thời gian</label
+            >
+            <select
+              id="time-filter"
+              class="w-full bg-slate-700 border border-slate-600 text-white rounded-xl px-3 py-2 text-sm"
+              onchange="applyFilters()"
+            >
+              <option value="all">Tất cả</option>
+              <option value="today">Hôm nay</option>
+              <option value="week">7 ngày qua</option>
+              <option value="month">30 ngày qua</option>
+              <option value="custom">Tùy chọn</option>
+            </select>
+          </div>
+
+          <!-- Khoảng ngày tùy chọn -->
+          <div class="space-y-2" id="custom-date-range" style="display: none">
+            <label
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+              >Từ ngày</label
+            >
+            <input
+              type="date"
+              id="start-date"
+              class="w-full bg-slate-700 border border-slate-600 text-white rounded-xl px-3 py-2 text-sm"
+              onchange="applyFilters()"
+            />
+          </div>
+          <div
+            class="space-y-2"
+            id="custom-date-range-end"
+            style="display: none"
+          >
+            <label
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+              >Đến ngày</label
+            >
+            <input
+              type="date"
+              id="end-date"
+              class="w-full bg-slate-700 border border-slate-600 text-white rounded-xl px-3 py-2 text-sm"
+              onchange="applyFilters()"
+            />
+          </div>
+
+          <!-- Lọc theo loại file -->
+          <div class="space-y-2">
+            <label
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+              >Loại file</label
+            >
+            <select
+              id="file-type-filter"
+              class="w-full bg-slate-700 border border-slate-600 text-white rounded-xl px-3 py-2 text-sm"
+              onchange="applyFilters()"
+            >
+              <option value="all">Tất cả</option>
+              <option value="code">Mã nguồn</option>
+              <option value="pdf">PDF</option>
+              <option value="document">Tài liệu</option>
+              <option value="image">Hình ảnh</option>
+            </select>
+          </div>
+
+          <!-- Lọc theo thuật toán -->
+          <div class="space-y-2">
+            <label
+              class="text-xs font-bold text-slate-400 uppercase tracking-wider"
+              >Thuật toán</label
+            >
+            <select
+              id="algorithm-filter"
+              class="w-full bg-slate-700 border border-slate-600 text-white rounded-xl px-3 py-2 text-sm"
+              onchange="applyFilters()"
+            >
+              <option value="all">Tất cả</option>
+              <option value="sorting">Sắp xếp</option>
+              <option value="searching">Tìm kiếm</option>
+              <option value="dp">Quy hoạch động</option>
+              <option value="graph">Đồ thị</option>
+              <option value="string">Xử lý chuỗi</option>
+              <option value="math">Toán học</option>
+              <option value="recursion">Đệ quy</option>
+              <option value="greedy">Tham lam</option>
+              <option value="backtracking">Quay lui</option>
+            </select>
+          </div>
+
+          <!-- Nút xuất -->
+          <div class="space-y-2 flex items-end">
+            <button
+              onclick="exportCurrentFolder()"
+              class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-3 py-2 text-sm font-bold flex items-center justify-center gap-2 transition-all"
+            >
+              <i data-lucide="download" size="16"></i>
+              <span class="hidden sm:inline">Xuất thư mục</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tags hiển thị bộ lọc đang áp dụng -->
+        <div
+          id="active-filters"
+          class="flex flex-wrap gap-2 mt-4 text-xs"
+        ></div>
+      </div>
+    </header>
+
+    <main
+      class="flex h-[calc(100dvh-60px)] md:h-[calc(100vh-72px)] overflow-hidden"
+    >
+      <!-- Sidebar -->
+      <aside
+        class="w-80 bg-white border-r border-slate-200 flex flex-col flex-shrink-0 transition-all duration-300 overflow-hidden z-40"
+        id="sidebar"
+      >
+        <div
+          class="p-4 flex justify-between items-center border-b border-slate-100"
+        >
+          <span
+            class="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 flex items-center gap-2"
+          >
+            <i data-lucide="box" size="14"></i> Explorer
+          </span>
+          <div class="flex gap-1">
+            <button
+              onclick="toggleViewMode('grid')"
+              class="p-2 hover:bg-indigo-50 text-indigo-600 rounded-xl transition-colors"
+              title="Grid View"
+            >
+              <i data-lucide="layout-grid" size="16"></i>
+            </button>
+            <button
+              onclick="toggleViewMode('list')"
+              class="p-2 hover:bg-indigo-50 text-indigo-600 rounded-xl transition-colors"
+              title="List View"
+            >
+              <i data-lucide="list" size="16"></i>
+            </button>
+          </div>
+        </div>
+        <div class="p-3 border-b border-slate-100">
+          <div class="view-options">
+            <button class="view-option flex-1" onclick="toggleViewMode('grid')">
+              <i data-lucide="layout-grid" size="14" class="inline mr-1"></i>
+              Grid
+            </button>
+            <button class="view-option flex-1" onclick="toggleViewMode('list')">
+              <i data-lucide="list" size="14" class="inline mr-1"></i> List
+            </button>
+          </div>
+        </div>
+        <div
+          id="tree-container"
+          class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-0.5"
+        ></div>
+      </aside>
+
+      <!-- Content -->
+      <section
+        id="content-area"
+        class="flex-1 overflow-y-auto bg-slate-50 custom-scrollbar relative"
+      >
+        <div id="main-view" class="p-4 md:p-8 h-full min-h-full"></div>
+      </section>
+    </main>
+
+    <!-- Admin Console -->
+    <div
+      id="admin-console"
+      class="fixed bottom-2 left-2 right-2 md:bottom-4 md:left-4 md:right-4 z-[100] bg-slate-900/95 text-slate-300 font-mono text-sm rounded-2xl md:rounded-3xl border border-slate-700 shadow-2xl overflow-hidden max-w-5xl mx-auto h-[400px] md:h-[450px] flex flex-col"
+    >
+      <div
+        class="px-4 md:px-6 py-3 border-b border-slate-800 flex justify-between items-center bg-slate-900/50"
+      >
+        <div class="flex items-center gap-3">
+          <div class="flex gap-1.5">
+            <div
+              class="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-rose-500"
+            ></div>
+            <div
+              class="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-amber-500"
+            ></div>
+            <div
+              class="w-2.5 h-2.5 md:w-3 md:h-3 rounded-full bg-emerald-500"
+            ></div>
+          </div>
+          <span
+            class="text-[10px] md:text-xs font-bold text-slate-500 ml-2 flex items-center gap-2 uppercase tracking-widest"
+          >
+            <i data-lucide="command" size="12"></i> DIENKON Terminal
+          </span>
+        </div>
+        <div class="flex gap-3 items-center">
+          <span
+            id="admin-indicator"
+            class="text-[8px] md:text-[10px] border border-slate-700 px-2 py-0.5 md:px-3 md:py-1 rounded-full text-slate-500"
+            >USER</span
+          >
+          <button
+            onclick="toggleAdminPanel()"
+            class="text-slate-500 hover:text-white transition-colors p-1"
+          >
+            <i data-lucide="minimize-2" size="16"></i>
+          </button>
+        </div>
+      </div>
+
+      <div
+        id="admin-output"
+        class="flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 space-y-2 text-[12px] md:text-[13px] leading-relaxed"
+      >
+        <div
+          class="text-indigo-400 font-bold mb-2 uppercase tracking-tighter text-base md:text-lg"
+        >
+          DIENKON OS v2.2.0
+        </div>
+        <div class="text-slate-500 italic">
+          Hệ thống sẵn sàng. Gõ 'help' để xem danh sách lệnh.
+        </div>
+      </div>
+
+      <div
+        class="p-3 md:p-4 bg-black/30 backdrop-blur-md border-t border-slate-800"
+      >
+        <div
+          class="flex items-center gap-3 px-3 py-2 bg-slate-800/50 rounded-xl border border-slate-700 group focus-within:border-indigo-500/50 transition-all"
+        >
+          <span
+            class="text-indigo-500 font-bold animate-pulse text-sm md:text-base"
+            >❯</span
+          >
+          <input
+            type="text"
+            id="admin-input"
+            class="bg-transparent border-none outline-none flex-1 text-emerald-400 placeholder-slate-600 text-sm"
+            placeholder="Type command..."
+            onkeydown="processAdminCmd(event)"
+            autocomplete="off"
+          />
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+      import {
+        getDatabase,
+        ref,
+        onValue,
+        update,
+      } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
+      import {
+        getAuth,
+        signInAnonymously,
+      } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+
+      // --- CONFIGURATION ---
+      const GITHUB_TOKEN = "REPLACE_WITH_GITHUB_TOKEN";
+      const REPO_OWNER = "GZEGM";
+      const REPO_NAME = "HSG";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyBaPEVL-vA3YGI7f0pWrszLYyrxNjYtyE4",
+        authDomain: "code-cacd4.firebaseapp.com",
+        databaseURL: "https://code-cacd4-default-rtdb.firebaseio.com",
+        projectId: "code-cacd4",
+        storageBucket: "code-cacd4.firebasestorage.app",
+        messagingSenderId: "296730554282",
+        appId: "1:296730554282:web:8e60bc405e0e19cb9885d3",
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const rtdb = getDatabase(app);
+      const appId =
+        typeof __app_id !== "undefined" ? __app_id : "dienkon-hsg-rtdb";
+
+      function safeBtoA(str) {
+        return btoa(unescape(encodeURIComponent(str)));
+      }
+
+      let rawData = [];
+      let fileList = [];
+      let commitHistory = [];
+      let adminSettings = {};
+      let isAdmin = false;
+      let currentPath = "";
+      let expandedNodes = { Root: true };
+      let contextTarget = null;
+      let searchKeyword = "";
+      let history = [];
+      let historyIdx = -1;
+      let viewMode = "grid";
+      let selectedFiles = new Set();
+      let quickAccessPaths = JSON.parse(
+        localStorage.getItem("quickAccess") || "[]",
+      );
+
+      // Filter states
+      let filters = {
+        time: "all",
+        startDate: null,
+        endDate: null,
+        fileType: "all",
+        algorithm: "all",
+      };
+
+      window.startTime = Date.now();
+      let apiCallsToday = 0;
+      const MAX_API_CALLS = 5000;
+
+      // Thuật toán patterns
+      const algorithmPatterns = {
+        sorting:
+          /(sort|qsort|merge sort|quick sort|bubble sort|selection sort|insertion sort|heap sort|sap xep)/i,
+        searching:
+          /(search|binary search|linear search|tim kiem|binary|sequential)/i,
+        dp: /(dynamic programming|dp|quy hoach dong|memoization|tabulation|knapsack|fibonacci|day con|longest|optimal)/i,
+        graph:
+          /(graph|bfs|dfs|dijkstra|floyd|bellman|prim|kruskal|topo|network|do thi|duyet do thi)/i,
+        string:
+          /(string|palindrome|substring|chuoi|xau|pattern matching|kmp|z algorithm)/i,
+        math: /(math|prime|so nguyen to|gcd|lcm|factorial|giao thua|fibonacci|to hop|permutation)/i,
+        recursion: /(recursion|de quy|backtrack|divide and conquer)/i,
+        greedy: /(greedy|tham lam|activity selection|coin change)/i,
+        backtracking: /(backtracking|quay lui|n queen|permutation|sudoku)/i,
+      };
+
+      let algorithmCache = {};
+
+      // Safe element getter
+      function safeGetElement(id) {
+        return document.getElementById(id);
+      }
+
+      // Mobile sidebar toggle
+      window.toggleMobileSidebar = function (e) {
+        e.stopPropagation();
+        const sidebar = safeGetElement("sidebar");
+        sidebar.classList.toggle("mobile-open");
+      };
+
+      // Close sidebar when clicking outside on mobile
+      document.addEventListener("click", (e) => {
+        const sidebar = safeGetElement("sidebar");
+        const menuBtn = e.target.closest("button");
+        if (
+          window.innerWidth <= 768 &&
+          sidebar &&
+          sidebar.classList.contains("mobile-open") &&
+          !sidebar.contains(e.target) &&
+          !menuBtn
+        ) {
+          sidebar.classList.remove("mobile-open");
+        }
+      });
+
+      // View mode toggle
+      window.toggleViewMode = function (mode) {
+        viewMode = mode;
+        localStorage.setItem("viewMode", mode);
+        document.querySelectorAll(".view-option").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+        if (currentPath === "grid" || currentPath === "list") {
+          renderFileView();
+        }
+      };
+
+      // Copy path
+      window.copyPath = function (path) {
+        navigator.clipboard.writeText(path).then(() => {
+          logToAdmin(`Đã sao chép: ${path}`, "text-emerald-400", "check");
+        });
+      };
+
+      // Quick access
+      window.toggleQuickAccess = function (path) {
+        const index = quickAccessPaths.indexOf(path);
+        if (index === -1) {
+          quickAccessPaths.push(path);
+          logToAdmin(`Đã thêm vào truy cập nhanh: ${path}`, "text-emerald-400");
+        } else {
+          quickAccessPaths.splice(index, 1);
+          logToAdmin(`Đã xóa khỏi truy cập nhanh: ${path}`, "text-amber-400");
+        }
+        localStorage.setItem("quickAccess", JSON.stringify(quickAccessPaths));
+        renderQuickAccess();
+      };
+
+      function renderQuickAccess() {
+        const container = safeGetElement("quick-access-container");
+        if (!container) return;
+
+        container.innerHTML = quickAccessPaths
+          .map(
+            (path) => `
+          <div class="quick-access-item" onclick="navigateToPath('${path.replace(/'/g, "\\'")}')">
+            <i data-lucide="folder" size="12" class="inline mr-1"></i>
+            ${path.split("/").pop() || "Root"}
+          </div>
+        `,
+          )
+          .join("");
+
+        if (typeof lucide !== "undefined") {
+          lucide.createIcons();
+        }
+      }
+
+      window.navigateToPath = function (path) {
+        if (!path) return;
+        const parts = path.split("/");
+        let current = "";
+        parts.forEach((part) => {
+          current += (current ? "/" : "") + part;
+          expandedNodes[current] = true;
+        });
+        renderTree();
+
+        // Scroll to file in tree
+        setTimeout(() => {
+          const treeItems = document.querySelectorAll(".tree-item");
+          for (const item of treeItems) {
+            if (item.textContent.includes(parts[parts.length - 1])) {
+              item.scrollIntoView({ behavior: "smooth", block: "center" });
+              break;
+            }
+          }
+        }, 100);
+      };
+
+      // File selection
+      window.toggleFileSelection = function (path, event) {
+        if (event.ctrlKey || event.metaKey) {
+          if (selectedFiles.has(path)) {
+            selectedFiles.delete(path);
+          } else {
+            selectedFiles.add(path);
+          }
+        } else if (event.shiftKey && lastSelected) {
+          // Range selection logic here
+        } else {
+          selectedFiles.clear();
+          selectedFiles.add(path);
+        }
+        renderFileView();
+      };
+
+      // Init Firebase
+      function initSync() {
+        signInAnonymously(auth)
+          .then(() => {
+            const settingsRef = ref(rtdb, `artifacts/${appId}/settings`);
+            onValue(settingsRef, (snapshot) => {
+              adminSettings = snapshot.val() || {};
+              renderTree();
+              refreshCurrentView();
+            });
+          })
+          .catch((error) => {
+            console.error("Firebase auth error:", error);
+            logToAdmin("Firebase connection error", "text-rose-400");
+          });
+      }
+
+      function logToAdmin(msg, color = "text-slate-300", icon = "") {
+        const out = safeGetElement("admin-output");
+        if (out) {
+          const time = new Date().toLocaleTimeString("en-US", {
+            hour12: false,
+          });
+          out.innerHTML += `<div class="${color} flex items-start gap-2">
+            <span class="text-[8px] md:text-[10px] text-slate-600 mt-1 font-mono">[${time}]</span>
+            <span class="flex items-center gap-1">${icon ? `<i data-lucide="${icon}" size="12" class="inline"></i>` : ""}${msg}</span>
+          </div>`;
+          out.scrollTop = out.scrollHeight;
+          if (typeof lucide !== "undefined") {
+            lucide.createIcons();
+          }
+        }
+      }
+
+      async function ghFetch(url) {
+        apiCallsToday++;
+        const headers = {};
+        if (GITHUB_TOKEN) {
+          headers["Authorization"] = `token ${GITHUB_TOKEN}`;
+        }
+
+        try {
+          const res = await fetch(url, { headers });
+
+          if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+          }
+
+          const rem = res.headers.get("x-ratelimit-remaining");
+          const lim = res.headers.get("x-ratelimit-limit");
+          const reset = res.headers.get("x-ratelimit-reset");
+
+          if (rem) {
+            const statusTxt = safeGetElement("status-text");
+            const statusDot = safeGetElement("status-dot");
+            if (statusTxt && statusDot) {
+              statusTxt.innerText = `API: ${rem}/${lim}`;
+              const ratio = parseInt(rem) / parseInt(lim);
+              statusDot.className = `status-dot ${
+                ratio > 0.3
+                  ? "status-online"
+                  : ratio > 0.05
+                    ? "status-warning"
+                    : "status-offline"
+              }`;
+            }
+          }
+          return res.json();
+        } catch (error) {
+          console.error("GitHub fetch error:", error);
+          throw error;
+        }
+      }
+
+      // Fetch commit history
+      async function fetchCommitHistory() {
+        try {
+          const commits = await ghFetch(
+            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/commits?per_page=100`,
+          );
+
+          const fileCommitTimes = {};
+
+          for (const commit of commits.slice(0, 30)) {
+            try {
+              const detail = await ghFetch(commit.url);
+              const date = new Date(commit.commit.author.date);
+
+              if (detail.files) {
+                detail.files.forEach((file) => {
+                  if (
+                    !fileCommitTimes[file.filename] ||
+                    date > new Date(fileCommitTimes[file.filename])
+                  ) {
+                    fileCommitTimes[file.filename] = commit.commit.author.date;
+                  }
+                });
+              }
+            } catch (e) {
+              console.warn("Không thể lấy chi tiết commit:", e);
+            }
+          }
+
+          commitHistory = fileCommitTimes;
+          logToAdmin(
+            `Đã tải lịch sử ${Object.keys(commitHistory).length} file`,
+            "text-emerald-400",
+          );
+        } catch (e) {
+          console.error("Không thể tải commit history:", e);
+        }
+      }
+
+      // Detect algorithm
+      async function detectAlgorithm(path, content) {
+        if (algorithmCache[path]) {
+          return algorithmCache[path];
+        }
+
+        const detected = new Set();
+
+        for (const [algo, pattern] of Object.entries(algorithmPatterns)) {
+          if (pattern.test(content)) {
+            detected.add(algo);
+          }
+        }
+
+        if (
+          content.includes("#include <algorithm>") ||
+          content.includes("import java.util.*")
+        ) {
+          detected.add("sorting");
+        }
+
+        if (
+          content.includes("vector") &&
+          (content.includes("push_back") || content.includes("pop_back"))
+        ) {
+          detected.add("graph");
+        }
+
+        const result = Array.from(detected);
+        algorithmCache[path] = result;
+        return result;
+      }
+
+      window.initApp = async function () {
+        const loadingOverlay = safeGetElement("loading-overlay");
+        if (loadingOverlay) {
+          loadingOverlay.classList.remove("hidden");
+        }
+
+        try {
+          const data = await ghFetch(
+            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/trees/main?recursive=1`,
+          );
+
+          if (!data.tree) {
+            throw new Error("Invalid response from GitHub API");
+          }
+
+          rawData = data.tree || [];
+          fileList = rawData.filter(
+            (i) => i.type === "blob" && isSupportedFile(i.path),
+          );
+
+          await fetchCommitHistory();
+
+          renderTree();
+          renderDashboard();
+          renderQuickAccess();
+
+          if (loadingOverlay) {
+            setTimeout(() => {
+              loadingOverlay.classList.add("hidden");
+            }, 1000);
+          }
+
+          logToAdmin(
+            `Đã tải ${fileList.length} files từ repository`,
+            "text-emerald-400",
+          );
+        } catch (e) {
+          console.error("Init error:", e);
+
+          if (loadingOverlay) {
+            loadingOverlay.innerHTML = `
+              <div class='text-center p-6 bg-slate-900 h-full w-full flex flex-col items-center justify-center'>
+                <i data-lucide="alert-circle" size="48" class="text-rose-500 mb-4"></i>
+                <h2 class='text-rose-500 font-bold mb-3 text-lg'>GitHub API Error</h2>
+                <p class='text-slate-400 mb-2 text-sm'>${e.message || "Không thể kết nối đến GitHub"}</p>
+                <p class='text-slate-500 mb-4 text-xs'>Vui lòng kiểm tra token hoặc thử lại sau</p>
+                <button class='bg-indigo-600 px-6 py-2.5 rounded-xl text-white font-bold text-sm hover:bg-indigo-700 transition-all' onclick='location.reload()'>
+                  Thử lại
+                </button>
+              </div>`;
+            if (typeof lucide !== "undefined") {
+              lucide.createIcons();
+            }
+          }
+        }
+      };
+
+      function isSupportedFile(path) {
+        const ext = path.split(".").pop().toLowerCase();
+        return [
+          "cpp",
+          "py",
+          "pas",
+          "java",
+          "c",
+          "js",
+          "md",
+          "txt",
+          "sql",
+          "pdf",
+          "jpg",
+          "jpeg",
+          "png",
+          "gif",
+          "svg",
+        ].includes(ext);
+      }
+
+      function getFileType(ext) {
+        const codeExts = ["cpp", "py", "pas", "java", "c", "js", "sql"];
+        const docExts = ["md", "txt"];
+        const imageExts = ["jpg", "jpeg", "png", "gif", "svg"];
+
+        if (codeExts.includes(ext)) return "code";
+        if (ext === "pdf") return "pdf";
+        if (docExts.includes(ext)) return "document";
+        if (imageExts.includes(ext)) return "image";
+        return "other";
+      }
+
+      function isPathVisible(fullPath) {
+        if (isAdmin) return true;
+        const parts = fullPath.split("/");
+        let checkPath = "";
+        for (let i = 0; i < parts.length; i++) {
+          checkPath += (i === 0 ? "" : "/") + parts[i];
+          if (adminSettings[safeBtoA(checkPath)]?.hidden === true) return false;
+        }
+        return true;
+      }
+
+      function isItemHidden(path) {
+        return adminSettings[safeBtoA(path)]?.hidden === true;
+      }
+
+      // Filter functions
+      async function matchesFilters(file) {
+        // Time filter
+        if (filters.time !== "all") {
+          const commitTime = commitHistory[file.path];
+          if (!commitTime) return false;
+
+          const fileDate = new Date(commitTime);
+          const now = new Date();
+
+          if (filters.time === "today") {
+            if (fileDate.toDateString() !== now.toDateString()) return false;
+          } else if (filters.time === "week") {
+            const weekAgo = new Date(now.setDate(now.getDate() - 7));
+            if (fileDate < weekAgo) return false;
+          } else if (filters.time === "month") {
+            const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
+            if (fileDate < monthAgo) return false;
+          } else if (
+            filters.time === "custom" &&
+            filters.startDate &&
+            filters.endDate
+          ) {
+            const start = new Date(filters.startDate);
+            const end = new Date(filters.endDate);
+            if (fileDate < start || fileDate > end) return false;
+          }
+        }
+
+        // File type filter
+        if (filters.fileType !== "all") {
+          const ext = file.path.split(".").pop().toLowerCase();
+          const type = getFileType(ext);
+          if (type !== filters.fileType) return false;
+        }
+
+        // Search filter
+        if (
+          searchKeyword &&
+          !file.path.toLowerCase().includes(searchKeyword.toLowerCase())
+        ) {
+          return false;
+        }
+
+        return true;
+      }
+
+      window.applyFilters = async function () {
+        const timeFilter = safeGetElement("time-filter");
+        const startDate = safeGetElement("start-date");
+        const endDate = safeGetElement("end-date");
+        const fileTypeFilter = safeGetElement("file-type-filter");
+        const algorithmFilter = safeGetElement("algorithm-filter");
+        const customRange = safeGetElement("custom-date-range");
+        const customRangeEnd = safeGetElement("custom-date-range-end");
+        const badge = safeGetElement("filter-badge");
+        const activeFiltersDiv = safeGetElement("active-filters");
+
+        if (timeFilter) filters.time = timeFilter.value;
+
+        if (customRange && customRangeEnd) {
+          if (filters.time === "custom") {
+            customRange.style.display = "block";
+            customRangeEnd.style.display = "block";
+            if (startDate) filters.startDate = startDate.value;
+            if (endDate) filters.endDate = endDate.value;
+          } else {
+            customRange.style.display = "none";
+            customRangeEnd.style.display = "none";
+            filters.startDate = null;
+            filters.endDate = null;
+          }
+        }
+
+        if (fileTypeFilter) filters.fileType = fileTypeFilter.value;
+        if (algorithmFilter) filters.algorithm = algorithmFilter.value;
+
+        if (badge) {
+          const hasFilters =
+            filters.time !== "all" ||
+            filters.fileType !== "all" ||
+            filters.algorithm !== "all" ||
+            (filters.startDate && filters.endDate);
+          badge.style.display = hasFilters ? "block" : "none";
+        }
+
+        if (activeFiltersDiv) {
+          let filterTexts = [];
+          if (filters.time !== "all")
+            filterTexts.push(`Thời gian: ${filters.time}`);
+          if (filters.fileType !== "all")
+            filterTexts.push(`Loại: ${filters.fileType}`);
+          if (filters.algorithm !== "all")
+            filterTexts.push(`Thuật toán: ${filters.algorithm}`);
+          if (filters.startDate && filters.endDate) {
+            filterTexts.push(`Từ ${filters.startDate} đến ${filters.endDate}`);
+          }
+
+          activeFiltersDiv.innerHTML = filterTexts
+            .map(
+              (text) =>
+                `<span class="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-full text-xs font-medium">${text}</span>`,
+            )
+            .join("");
+        }
+
+        if (currentPath === "grid" || currentPath === "list") {
+          await renderFileView();
+        } else {
+          renderTree();
+        }
+      };
+
+      window.toggleFilterPanel = function () {
+        const filterPanel = safeGetElement("filter-panel");
+        if (filterPanel) {
+          filterPanel.classList.toggle("active");
+        }
+      };
+
+      // Export functions
+      window.exportCurrentFolder = async function () {
+        await exportFolder(currentPath || "");
+      };
+
+      window.exportFolder = async function (folderPath) {
+        if (!folderPath) folderPath = "";
+
+        logToAdmin(
+          `Đang xuất files từ ${folderPath || "root"}...`,
+          "text-indigo-400",
+          "folder-output",
+        );
+
+        try {
+          const zip = new JSZip();
+          const filesToExport = fileList.filter(
+            (f) => f.path.startsWith(folderPath) && isPathVisible(f.path),
+          );
+
+          for (const file of filesToExport) {
+            try {
+              const data = await ghFetch(
+                `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${file.path}`,
+              );
+
+              if (data.encoding === "base64") {
+                const content = atob(data.content);
+                zip.file(file.path, content, { binary: false });
+              } else {
+                zip.file(file.path, data.content);
+              }
+            } catch (e) {
+              console.error("Không thể tải file:", file.path);
+            }
+          }
+
+          const content = await zip.generateAsync({ type: "blob" });
+          const folderName = folderPath.split("/").pop() || "root";
+          saveAs(
+            content,
+            `HSG_${folderName}_${new Date().toISOString().slice(0, 10)}.zip`,
+          );
+
+          logToAdmin(
+            `Xuất thành công ${filesToExport.length} files!`,
+            "text-emerald-400",
+            "check-circle",
+          );
+        } catch (error) {
+          console.error("Export error:", error);
+          logToAdmin("Lỗi khi xuất files", "text-rose-400");
+        }
+      };
+
+      // Render functions
+      function renderTree() {
+        const container = safeGetElement("tree-container");
+        if (!container) return;
+
+        try {
+          const treeRoot = {
+            name: "Root",
+            path: "",
+            type: "tree",
+            children: [],
+          };
+
+          rawData.forEach((item) => {
+            if (!isPathVisible(item.path)) return;
+
+            if (
+              searchKeyword &&
+              !item.path.toLowerCase().includes(searchKeyword.toLowerCase())
+            ) {
+              return;
+            }
+
+            const pathParts = item.path.split("/");
+            let curr = treeRoot;
+            pathParts.forEach((part, idx) => {
+              let found = curr.children.find((c) => c.originalName === part);
+              if (!found) {
+                const fullPath = pathParts.slice(0, idx + 1).join("/");
+                const node = {
+                  name: adminSettings[safeBtoA(fullPath)]?.alias || part,
+                  originalName: part,
+                  path: fullPath,
+                  type: idx === pathParts.length - 1 ? item.type : "tree",
+                  children: [],
+                };
+                curr.children.push(node);
+                found = node;
+              }
+              curr = found;
+            });
+          });
+
+          function buildHTML(node, level = 0) {
+            if (node.name === "Root" && level === 0) {
+              return node.children
+                .sort((a, b) => (a.type === "tree" ? -1 : 1))
+                .map((c) => buildHTML(c, level))
+                .join("");
+            }
+
+            const isFolder = node.type === "tree";
+            const isExp = expandedNodes[node.path] || false;
+            const hidden = isItemHidden(node.path);
+            const padding = level * 12 + 12;
+
+            return `
+              <div class="tree-item group ${isAdmin && hidden ? "item-hidden-admin" : ""}" 
+                   oncontextmenu="handleRightClick(event, '${node.path.replace(/'/g, "\\'")}')">
+                <div onclick="${isFolder ? `toggleNode('${node.path.replace(/'/g, "\\'")}')` : `viewFile('${node.path.replace(/'/g, "\\'")}')`}" 
+                     class="flex items-center py-2 px-3 rounded-xl cursor-pointer hover:bg-slate-100 text-[13px] transition-all truncate ${currentPath === node.path ? "tree-item-active shadow-sm" : "text-slate-600"}"
+                     style="padding-left: ${padding}px">
+                  <i data-lucide="${isFolder ? (isExp ? "chevron-down" : "chevron-right") : "file-code-2"}" size="14" class="mr-2 opacity-40"></i>
+                  <i data-lucide="${isFolder ? (isExp ? "folder-open" : "folder") : ""}" size="14" class="mr-2 text-indigo-500 ${!isFolder ? "hidden" : ""}"></i>
+                  <span class="truncate flex-1">${escapeHtml(node.name)}</span>
+                  ${quickAccessPaths.includes(node.path) ? '<i data-lucide="star" size="12" class="text-yellow-500 ml-1"></i>' : ""}
+                </div>
+                ${
+                  isFolder && isExp
+                    ? `<div>${node.children
+                        .sort((a, b) => (a.type === "tree" ? -1 : 1))
+                        .map((c) => buildHTML(c, level + 1))
+                        .join("")}</div>`
+                    : ""
+                }
+              </div>`;
+          }
+
+          container.innerHTML = buildHTML(treeRoot);
+          if (typeof lucide !== "undefined") {
+            lucide.createIcons();
+          }
+        } catch (error) {
+          console.error("Render tree error:", error);
+          container.innerHTML =
+            '<div class="text-rose-500 p-4 text-sm">Lỗi hiển thị cây thư mục</div>';
+        }
+      }
+
+      function escapeHtml(unsafe) {
+        return unsafe
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      // File view renderer
+      window.renderFileView = async function () {
+        currentPath = viewMode;
+        const view = safeGetElement("main-view");
+        if (!view) return;
+
+        view.innerHTML = `<div class="flex justify-center items-center h-40"><div class="loader w-8 h-8 border-4 border-indigo-500 rounded-full"></div></div>`;
+
+        let filtered = [];
+        for (const f of fileList) {
+          if (!isPathVisible(f.path)) continue;
+          if (await matchesFilters(f)) {
+            filtered.push(f);
+          }
+        }
+
+        if (viewMode === "grid") {
+          view.innerHTML = renderGridView(filtered);
+        } else {
+          view.innerHTML = renderListView(filtered);
+        }
+
+        if (typeof lucide !== "undefined") {
+          lucide.createIcons();
+        }
+      };
+
+      function renderGridView(files) {
+        return `
+          <div class="space-y-4 md:space-y-6 pb-8 max-w-7xl mx-auto">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h1 class="text-2xl md:text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Library <span class="text-indigo-600 font-light not-italic">Files</span></h1>
+                <p class="text-slate-500 mt-1 text-sm">Found ${files.length} resources</p>
+              </div>
+              <div class="flex gap-2 w-full sm:w-auto">
+                <button onclick="exportSelectedFiles()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all ${selectedFiles.size === 0 ? "opacity-50 pointer-events-none" : ""}">
+                  <i data-lucide="download" size="14"></i>
+                  <span class="hidden sm:inline">Xuất (${selectedFiles.size})</span>
+                </button>
+                <button onclick="exportCurrentFolder()" class="bg-slate-800 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-indigo-600 transition-all">
+                  <i data-lucide="folder-output" size="14"></i>
+                  <span class="hidden sm:inline">Xuất thư mục</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-5">
+              ${files
+                .map((f) => {
+                  const name =
+                    adminSettings[safeBtoA(f.path)]?.alias ||
+                    f.path.split("/").pop();
+                  const hidden = isItemHidden(f.path);
+                  const ext = f.path.split(".").pop().toUpperCase();
+                  const type = getFileType(ext.toLowerCase());
+                  const commitDate = commitHistory[f.path]
+                    ? new Date(commitHistory[f.path]).toLocaleDateString(
+                        "vi-VN",
+                      )
+                    : "Không rõ";
+                  const isSelected = selectedFiles.has(f.path);
+
+                  let icon = "file-code";
+                  if (type === "pdf") icon = "file-text";
+                  else if (type === "image") icon = "image";
+                  else if (type === "document") icon = "file";
+
+                  return `
+                  <div onclick="viewFile('${f.path.replace(/'/g, "\\'")}')" 
+                       oncontextmenu="handleRightClick(event, '${f.path.replace(/'/g, "\\'")}')" 
+                       class="bg-white p-4 md:p-5 rounded-xl md:rounded-2xl border ${isSelected ? "border-indigo-500 ring-2 ring-indigo-200" : "border-slate-200"} hover:border-indigo-500 hover:shadow-lg transition-all cursor-pointer group flex flex-col h-full relative overflow-hidden file-grid-item ${isAdmin && hidden ? "item-hidden-admin" : ""}"
+                       data-path="${f.path}">
+                    <div class="absolute top-0 right-0 p-2 bg-slate-50 rounded-bl-xl font-mono text-[8px] md:text-[10px] text-slate-400 font-bold">${escapeHtml(ext)}</div>
+                    <div class="flex flex-col gap-3">
+                      <div class="w-8 h-8 md:w-10 md:h-10 bg-slate-50 rounded-xl flex items-center justify-center group-hover:bg-indigo-50 group-hover:scale-110 transition-all">
+                        <i data-lucide="${icon}" size="18" class="text-slate-400 group-hover:text-indigo-600"></i>
+                      </div>
+                      <div class="truncate">
+                        <h4 class="font-bold text-slate-800 text-sm md:text-base truncate group-hover:text-indigo-600">${escapeHtml(name)}</h4>
+                        <p class="text-[8px] md:text-[10px] text-slate-400 font-mono mt-1 truncate">${escapeHtml(f.path)}</p>
+                        <div class="flex items-center gap-2 mt-2">
+                          <span class="text-[8px] text-indigo-400 font-mono">📅 ${escapeHtml(commitDate)}</span>
+                          ${quickAccessPaths.includes(f.path) ? '<i data-lucide="star" size="10" class="text-yellow-500"></i>' : ""}
+                        </div>
+                      </div>
+                    </div>
+                  </div>`;
+                })
+                .join("")}
+            </div>
+          </div>`;
+      }
+
+      function renderListView(files) {
+        return `
+          <div class="space-y-4 md:space-y-6 pb-8 max-w-7xl mx-auto">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h1 class="text-2xl md:text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Library <span class="text-indigo-600 font-light not-italic">Files</span></h1>
+                <p class="text-slate-500 mt-1 text-sm">Found ${files.length} resources</p>
+              </div>
+              <div class="flex gap-2 w-full sm:w-auto">
+                <button onclick="exportSelectedFiles()" class="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-indigo-700 transition-all ${selectedFiles.size === 0 ? "opacity-50 pointer-events-none" : ""}">
+                  <i data-lucide="download" size="14"></i>
+                  <span>Xuất (${selectedFiles.size})</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-xl md:rounded-2xl border border-slate-200 overflow-hidden">
+              <table class="w-full text-sm">
+                <thead class="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Tên file</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase hidden md:table-cell">Đường dẫn</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Loại</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase hidden sm:table-cell">Cập nhật</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${files
+                    .map((f) => {
+                      const name =
+                        adminSettings[safeBtoA(f.path)]?.alias ||
+                        f.path.split("/").pop();
+                      const hidden = isItemHidden(f.path);
+                      const ext = f.path.split(".").pop().toUpperCase();
+                      const type = getFileType(ext.toLowerCase());
+                      const commitDate = commitHistory[f.path]
+                        ? new Date(commitHistory[f.path]).toLocaleDateString(
+                            "vi-VN",
+                          )
+                        : "Không rõ";
+                      const isSelected = selectedFiles.has(f.path);
+
+                      return `
+                      <tr onclick="viewFile('${f.path.replace(/'/g, "\\'")}')" 
+                          oncontextmenu="handleRightClick(event, '${f.path.replace(/'/g, "\\'")}')" 
+                          class="border-b border-slate-100 hover:bg-indigo-50 cursor-pointer ${isSelected ? "bg-indigo-50" : ""} ${isAdmin && hidden ? "opacity-50" : ""}">
+                        <td class="px-4 py-3">
+                          <div class="flex items-center gap-2">
+                            <i data-lucide="${type === "pdf" ? "file-text" : type === "image" ? "image" : "file-code"}" size="14" class="text-indigo-500"></i>
+                            <span class="font-medium">${escapeHtml(name)}</span>
+                            ${quickAccessPaths.includes(f.path) ? '<i data-lucide="star" size="10" class="text-yellow-500"></i>' : ""}
+                          </div>
+                        </td>
+                        <td class="px-4 py-3 text-xs text-slate-500 hidden md:table-cell">${escapeHtml(f.path)}</td>
+                        <td class="px-4 py-3 text-xs"><span class="bg-slate-100 px-2 py-1 rounded-full">${ext}</span></td>
+                        <td class="px-4 py-3 text-xs text-slate-500 hidden sm:table-cell">${escapeHtml(commitDate)}</td>
+                      </tr>`;
+                    })
+                    .join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>`;
+      }
+
+      // View file
+      window.viewFile = async function (path, loadContent = true) {
+        if (!isPathVisible(path)) {
+          goHome();
+          return;
+        }
+        currentPath = path;
+        const key = safeBtoA(path);
+        const name = adminSettings[key]?.alias || path.split("/").pop();
+        const note = adminSettings[key]?.note || "";
+        const hidden = isItemHidden(path);
+        const ext = path.split(".").pop().toLowerCase();
+        const isPDF = ext === "pdf";
+        const isImage = ["jpg", "jpeg", "png", "gif", "svg"].includes(ext);
+
+        const view = safeGetElement("main-view");
+        if (!view) return;
+
+        view.innerHTML = `
+          <div class="h-full flex flex-col bg-white rounded-xl md:rounded-2xl shadow-xl border border-slate-200 overflow-hidden" oncontextmenu="handleRightClick(event, '${path.replace(/'/g, "\\'")}')">
+            <div class="px-4 md:px-6 py-3 md:py-4 border-b border-slate-100 flex flex-wrap justify-between items-center bg-white/50 backdrop-blur-xl gap-2">
+              <div class="flex items-center gap-3">
+                <button onclick="goHome()" class="p-2 hover:bg-slate-100 rounded-xl transition-all"><i data-lucide="arrow-left" size="18"></i></button>
+                <div>
+                  <h2 class="font-bold md:font-black text-slate-800 text-base md:text-xl flex items-center gap-2 flex-wrap">
+                    ${escapeHtml(name)} ${isAdmin && hidden ? '<span class="text-[8px] md:text-[10px] bg-rose-500 text-white px-2 py-0.5 rounded-full font-mono">Hidden</span>' : ""}
+                  </h2>
+                  <p class="text-[8px] md:text-[10px] font-mono text-slate-400 uppercase tracking-wider mt-0.5">${escapeHtml(path)}</p>
+                </div>
+              </div>
+              <div class="flex gap-2 ml-auto">
+                <button onclick="toggleQuickAccess('${path.replace(/'/g, "\\'")}')" class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-2 rounded-xl flex items-center gap-1 hover:bg-yellow-500 hover:text-white transition-all">
+                  <i data-lucide="star" size="14"></i>
+                </button>
+                <button onclick="navigateToPath('${path.split("/").slice(0, -1).join("/").replace(/'/g, "\\'")}')" class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-2 rounded-xl flex items-center gap-1 hover:bg-indigo-600 hover:text-white transition-all">
+                  <i data-lucide="folder" size="14"></i>
+                  <span class="hidden sm:inline">Mở thư mục</span>
+                </button>
+                <button onclick="exportFolder('${path.split("/").slice(0, -1).join("/").replace(/'/g, "\\'")}')" class="text-xs font-bold bg-slate-800 text-white px-3 py-2 rounded-xl flex items-center gap-1 hover:bg-indigo-600 transition-all">
+                  <i data-lucide="folder-output" size="14"></i>
+                  <span class="hidden sm:inline">Xuất</span>
+                </button>
+                <button onclick="copyToClipboard()" id="copy-btn" class="text-xs font-bold bg-slate-900 text-white px-3 py-2 rounded-xl flex items-center gap-1 hover:bg-indigo-600 transition-all">
+                  <i data-lucide="copy" size="14"></i>
+                  <span class="hidden sm:inline">Copy</span>
+                </button>
+              </div>
+            </div>
+            ${note ? `<div class="bg-indigo-50/50 px-4 md:px-6 py-2 border-b border-indigo-100 text-xs md:text-[13px] text-indigo-900 flex items-center gap-2"><i data-lucide="info" size="14" class="text-indigo-500"></i> Note: ${escapeHtml(note)}</div>` : ""}
+            <div class="flex-1 relative bg-[#0f172a] overflow-hidden">
+              <div id="file-loader" class="absolute inset-0 z-20 flex items-center justify-center bg-[#0f172a]"><div class="loader w-8 h-8 border-2 border-indigo-500 rounded-full"></div></div>
+              ${
+                isPDF
+                  ? `
+                <div id="pdf-viewer" class="pdf-viewer custom-scrollbar"></div>
+              `
+                  : isImage
+                    ? `
+                <div id="image-viewer" class="h-full flex items-center justify-center bg-slate-800 p-4">
+                  <img id="preview-image" class="max-h-full max-w-full object-contain" src="" alt="Preview">
+                </div>
+              `
+                    : `
+                <pre class="language-${getPrismLang(ext)} h-full overflow-auto custom-scrollbar p-4 md:p-6"><code></code></pre>
+              `
+              }
+            </div>
+          </div>`;
+
+        if (typeof lucide !== "undefined") {
+          lucide.createIcons();
+        }
+
+        if (loadContent) {
+          try {
+            const data = await ghFetch(
+              `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`,
+            );
+
+            if (isPDF) {
+              // Handle PDF
+              const pdfData = atob(data.content);
+              const blob = new Blob(
+                [Uint8Array.from(pdfData, (c) => c.charCodeAt(0))],
+                { type: "application/pdf" },
+              );
+              const url = URL.createObjectURL(blob);
+
+              pdfjsLib.GlobalWorkerOptions.workerSrc =
+                "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+              const loadingTask = pdfjsLib.getDocument(url);
+              const pdf = await loadingTask.promise;
+
+              const viewer = document.getElementById("pdf-viewer");
+              viewer.innerHTML = "";
+
+              for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 1.5 });
+                const canvas = document.createElement("canvas");
+                canvas.className = "pdf-page";
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                const context = canvas.getContext("2d");
+
+                await page.render({
+                  canvasContext: context,
+                  viewport: viewport,
+                }).promise;
+
+                viewer.appendChild(canvas);
+              }
+
+              URL.revokeObjectURL(url);
+            } else if (isImage) {
+              // Handle Image
+              const img = document.getElementById("preview-image");
+              img.src = `data:image/${ext};base64,${data.content}`;
+            } else {
+              // Handle code
+              const content = decodeURIComponent(escape(atob(data.content)));
+              window.currentCode = content;
+              const codeBox = document.querySelector("pre code");
+              if (codeBox) {
+                codeBox.textContent = content;
+                if (typeof Prism !== "undefined") {
+                  Prism.highlightElement(codeBox);
+                }
+              }
+            }
+
+            const loader = safeGetElement("file-loader");
+            if (loader) loader.remove();
+          } catch (e) {
+            logToAdmin("Error loading file: " + e.message, "text-rose-400");
+          }
+        }
+      };
+
+      // Render dashboard
+      window.renderDashboard = () => {
+        currentPath = "";
+        const view = safeGetElement("main-view");
+        if (!view) return;
+
+        const quickAccessHTML =
+          quickAccessPaths.length > 0
+            ? `
+          <div class="mb-6">
+            <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Truy cập nhanh</h3>
+            <div class="quick-access" id="quick-access-container">
+              ${quickAccessPaths
+                .map(
+                  (path) => `
+                <div class="quick-access-item" onclick="navigateToPath('${path.replace(/'/g, "\\'")}')">
+                  <i data-lucide="folder" size="12" class="inline mr-1"></i>
+                  ${path.split("/").pop() || "Root"}
+                </div>
+              `,
+                )
+                .join("")}
+            </div>
+          </div>
+        `
+            : "";
+
+        view.innerHTML = `<div class="flex flex-col items-center justify-center min-h-full text-center p-6">
+          <div class="w-20 h-20 md:w-28 md:h-28 bg-indigo-600 text-white rounded-3xl md:rounded-[3rem] flex items-center justify-center shadow-[0_20px_50px_rgba(79,70,229,0.3)] mb-6 md:mb-10 animate-bounce">
+            <i data-lucide="zap" size="40" class="fill-white"></i>
+          </div>
+          <h1 class="text-3xl md:text-5xl font-black text-slate-900 mb-4 uppercase tracking-tighter">DIENKON HUB</h1>
+          <p class="text-slate-500 mb-6 max-w-lg text-sm md:text-base leading-relaxed">Hệ thống lưu trữ và quản lý tài liệu mã nguồn HSG. Bảo mật, đồng bộ và chuyên nghiệp.</p>
+          
+          ${quickAccessHTML}
+          
+          <div class="flex flex-wrap gap-3 justify-center">
+            <button onclick="renderFileView()" class="bg-indigo-600 text-white px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base hover:scale-105 transition-all shadow-xl shadow-indigo-100">Khám phá</button>
+            <button onclick="toggleAdminPanel()" class="bg-slate-900 text-white px-6 md:px-10 py-3 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm md:text-base hover:bg-slate-800 transition-all">Terminal</button>
+          </div>
+        </div>`;
+
+        if (typeof lucide !== "undefined") {
+          lucide.createIcons();
+        }
+        renderQuickAccess();
+      };
+
+      // Admin actions
+      window.handleRightClick = (e, path) => {
+        if (!isAdmin) return;
+        e.preventDefault();
+        e.stopPropagation();
+        contextTarget = path;
+        const menu = safeGetElement("context-menu");
+        const menuTarget = safeGetElement("menu-target-name");
+        const toggleText = safeGetElement("toggle-text");
+        const toggleIcon = safeGetElement("toggle-icon");
+
+        if (!menu || !menuTarget || !toggleText || !toggleIcon) return;
+
+        const hidden = isItemHidden(path);
+        menuTarget.innerText = path.split("/").pop();
+        toggleText.innerText = hidden ? "Show to Public" : "Hide from Public";
+        toggleIcon.setAttribute("data-lucide", hidden ? "eye" : "eye-off");
+
+        if (typeof lucide !== "undefined") {
+          lucide.createIcons();
+        }
+
+        menu.style.display = "block";
+
+        // Adjust position for mobile
+        const x = Math.min(e.pageX, window.innerWidth - menu.offsetWidth - 10);
+        const y = Math.min(
+          e.pageY,
+          window.innerHeight - menu.offsetHeight - 10,
+        );
+        menu.style.left = `${x}px`;
+        menu.style.top = `${y}px`;
+      };
+
+      window.adminAction = async (action) => {
+        if (!contextTarget) return;
+        const key = safeBtoA(contextTarget);
+        let settings = adminSettings[key] || {};
+
+        try {
+          if (action === "rename") {
+            const val = prompt("New alias:", settings.alias || "");
+            if (val !== null) settings.alias = val;
+          } else if (action === "note") {
+            const val = prompt("Note:", settings.note || "");
+            if (val !== null) settings.note = val;
+          } else if (action === "toggle") {
+            settings.hidden = !settings.hidden;
+            logToAdmin(
+              `${settings.hidden ? "HIDDEN" : "VISIBLE"}: ${contextTarget}`,
+              settings.hidden ? "text-rose-400" : "text-emerald-400",
+            );
+          }
+
+          const updates = {};
+          updates[`artifacts/${appId}/settings/${key}`] = settings;
+          await update(ref(rtdb), updates);
+        } catch (error) {
+          console.error("Admin action error:", error);
+          logToAdmin("Lỗi khi thực hiện hành động", "text-rose-400");
+        }
+      };
+
+      // Terminal commands
+      window.processAdminCmd = (e) => {
+        if (e.key === "ArrowUp") {
+          if (historyIdx < history.length - 1) {
+            historyIdx++;
+            e.target.value = history[history.length - 1 - historyIdx];
+          }
+          return;
+        }
+        if (e.key === "ArrowDown") {
+          if (historyIdx > 0) {
+            historyIdx--;
+            e.target.value = history[history.length - 1 - historyIdx];
+          } else {
+            historyIdx = -1;
+            e.target.value = "";
+          }
+          return;
+        }
+        if (e.key !== "Enter") return;
+
+        const input = e.target.value.trim();
+        e.target.value = "";
+        historyIdx = -1;
+        if (!input) return;
+        history.push(input);
+        logToAdmin(input, "text-indigo-400 font-bold", "chevron-right");
+
+        const args = input.toLowerCase().split(" ");
+        const cmd = args[0];
+
+        switch (cmd) {
+          case "help":
+            logToAdmin("📚 DIENKON COMMANDS", "text-indigo-500 font-bold");
+            logToAdmin(
+              "  admin          : Bật/tắt quyền admin",
+              "text-slate-400",
+            );
+            logToAdmin("  stats          : Thống kê files", "text-slate-400");
+            logToAdmin(
+              "  api            : Thông tin API calls",
+              "text-slate-400",
+            );
+            logToAdmin(
+              "  rate           : Rate limit GitHub",
+              "text-slate-400",
+            );
+            logToAdmin(
+              "  tree           : Hiển thị cây thư mục",
+              "text-slate-400",
+            );
+            logToAdmin("  export [path]  : Xuất thư mục", "text-slate-400");
+            logToAdmin("  find [name]    : Tìm file", "text-slate-400");
+            logToAdmin("  recent [n]     : n file gần đây", "text-slate-400");
+            logToAdmin(
+              "  uptime         : Thời gian hoạt động",
+              "text-slate-400",
+            );
+            logToAdmin("  ping           : Kiểm tra kết nối", "text-slate-400");
+            logToAdmin("  clear/cls      : Xóa màn hình", "text-slate-400");
+            logToAdmin("  ver            : Phiên bản", "text-slate-400");
+            logToAdmin("  whoami         : Thông tin user", "text-slate-400");
+            logToAdmin("  matrix         : Matrix mode", "text-slate-400");
+            logToAdmin("  joke           : Câu nói vui", "text-slate-400");
+            logToAdmin("  exit           : Đóng terminal", "text-slate-400");
+            break;
+
+          case "api":
+            logToAdmin(
+              `📊 API Calls hôm nay: ${apiCallsToday}/${MAX_API_CALLS}`,
+              "text-cyan-400",
+            );
+            break;
+
+          case "rate":
+            logToAdmin("Đang kiểm tra rate limit...", "text-yellow-400");
+            ghFetch(`https://api.github.com/rate_limit`).then((data) => {
+              logToAdmin(
+                `Core: ${data.resources.core.remaining}/${data.resources.core.limit}`,
+                "text-emerald-400",
+              );
+              logToAdmin(
+                `Search: ${data.resources.search.remaining}/${data.resources.search.limit}`,
+                "text-emerald-400",
+              );
+            });
+            break;
+
+          case "tree":
+            renderTree();
+            logToAdmin("Đã refresh cây thư mục", "text-emerald-400");
+            break;
+
+          case "find":
+            if (args[1]) {
+              const found = fileList.filter((f) =>
+                f.path.toLowerCase().includes(args[1]),
+              );
+              logToAdmin(`Tìm thấy ${found.length} file:`, "text-indigo-400");
+              found
+                .slice(0, 10)
+                .forEach((f) => logToAdmin(`  📄 ${f.path}`, "text-slate-400"));
+            }
+            break;
+
+          case "recent":
+            const n = parseInt(args[1]) || 5;
+            const recent = Object.entries(commitHistory)
+              .sort((a, b) => new Date(b[1]) - new Date(a[1]))
+              .slice(0, n);
+            logToAdmin(`${n} file cập nhật gần đây:`, "text-indigo-400");
+            recent.forEach(([path, date]) => {
+              logToAdmin(
+                `  📄 ${path.split("/").pop()} (${new Date(date).toLocaleDateString("vi-VN")})`,
+                "text-slate-400",
+              );
+            });
+            break;
+
+          case "stats":
+            const st = {};
+            const types = {};
+            fileList.forEach((f) => {
+              const ex = f.path.split(".").pop();
+              st[ex] = (st[ex] || 0) + 1;
+              const type = getFileType(ex);
+              types[type] = (types[type] || 0) + 1;
+            });
+            logToAdmin("📊 FILE ANALYSIS:", "text-indigo-400 font-bold");
+            logToAdmin(`Tổng số: ${fileList.length} files`, "text-emerald-400");
+            logToAdmin("\n📁 Theo loại:", "text-slate-300");
+            Object.entries(types).forEach(([k, v]) =>
+              logToAdmin(`  ${k}: ${v} files`, "text-slate-400"),
+            );
+            logToAdmin("\n📄 Theo đuôi:", "text-slate-300");
+            Object.entries(st)
+              .slice(0, 10)
+              .forEach(([k, v]) =>
+                logToAdmin(`  .${k.toUpperCase()}: ${v}`, "text-slate-400"),
+              );
+            break;
+
+          case "export":
+            if (args[1]) {
+              exportFolder(args[1]);
+            } else {
+              exportFolder(currentPath || "");
+            }
+            break;
+
+          case "uptime":
+            const uptime = Math.floor((Date.now() - window.startTime) / 1000);
+            const hours = Math.floor(uptime / 3600);
+            const minutes = Math.floor((uptime % 3600) / 60);
+            const seconds = uptime % 60;
+            logToAdmin(
+              `⏱️ Uptime: ${hours}h ${minutes}m ${seconds}s`,
+              "text-emerald-400",
+            );
+            break;
+
+          case "ping":
+            const start = Date.now();
+            ghFetch(
+              `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}`,
+            ).then(() => {
+              const ms = Date.now() - start;
+              logToAdmin(`🏓 PONG! ${ms}ms`, "text-emerald-400");
+            });
+            break;
+
+          case "admin":
+            isAdmin = !isAdmin;
+            const ind = safeGetElement("admin-indicator");
+            if (ind) {
+              ind.innerText = isAdmin ? "ADMIN" : "USER";
+              ind.className = isAdmin
+                ? "text-[10px] border border-indigo-500 px-2 py-0.5 rounded-full text-indigo-400 font-bold"
+                : "text-[10px] border border-slate-700 px-2 py-0.5 rounded-full text-slate-500";
+            }
+            logToAdmin(
+              `Privileges: ${isAdmin ? "ADMIN" : "USER"}`,
+              isAdmin ? "text-emerald-400" : "text-rose-400",
+            );
+            renderTree();
+            refreshCurrentView();
+            break;
+
+          case "ver":
+            logToAdmin("DIENKON OS v2.2.0 Cloud", "text-indigo-400");
+            logToAdmin("Build: 2024", "text-slate-500");
+            break;
+
+          case "whoami":
+            logToAdmin(
+              `Session: ${isAdmin ? "Root Admin" : "Guest User"}`,
+              "text-emerald-400",
+            );
+            logToAdmin(
+              `ID: ${auth.currentUser?.uid || "anonymous"}`,
+              "text-slate-400",
+            );
+            break;
+
+          case "clear":
+          case "cls":
+            const output = safeGetElement("admin-output");
+            if (output) output.innerHTML = "";
+            break;
+
+          case "shake":
+            document.body.classList.add("shake");
+            setTimeout(() => document.body.classList.remove("shake"), 500);
+            break;
+
+          case "joke":
+            const jokes = [
+              "Programmer: A machine that turns caffeine into code.",
+              "There are 10 types of people: those who understand binary and those who don't.",
+              "Why do programmers prefer dark mode? Because light attracts bugs!",
+              "I would tell you a UDP joke, but you might not get it.",
+              "99 little bugs in the code, 99 little bugs. Take one down, patch it around, 117 little bugs in the code!",
+            ];
+            logToAdmin(
+              `😄 ${jokes[Math.floor(Math.random() * jokes.length)]}`,
+              "text-yellow-400",
+            );
+            break;
+
+          case "matrix":
+            document.body.classList.toggle("matrix-mode");
+            logToAdmin(
+              "Matrix mode " +
+                (document.body.classList.contains("matrix-mode")
+                  ? "ON"
+                  : "OFF"),
+              "text-emerald-400",
+            );
+            break;
+
+          case "exit":
+            toggleAdminPanel();
+            break;
+
+          default:
+            logToAdmin(
+              `❌ Unknown command: ${cmd}. Type 'help' for available commands.`,
+              "text-rose-400",
+            );
+        }
+      };
+
+      // Helper functions
+      function refreshCurrentView() {
+        if (currentPath === "grid" || currentPath === "list") {
+          renderFileView();
+        } else if (currentPath && currentPath !== "") {
+          viewFile(currentPath, false);
+        }
+      }
+
+      function getPrismLang(ext) {
+        const m = {
+          cpp: "cpp",
+          py: "python",
+          pas: "pascal",
+          java: "java",
+          js: "javascript",
+          sql: "sql",
+          c: "c",
+        };
+        return m[ext] || "clike";
+      }
+
+      window.toggleAdminPanel = () => {
+        const console = safeGetElement("admin-console");
+        if (console) {
+          console.classList.toggle("active");
+          if (console.classList.contains("active")) {
+            safeGetElement("admin-input")?.focus();
+          }
+        }
+      };
+
+      window.toggleNode = (path) => {
+        expandedNodes[path] = !expandedNodes[path];
+        renderTree();
+      };
+
+      window.goHome = () => {
+        currentPath = "";
+        selectedFiles.clear();
+        renderDashboard();
+        renderTree();
+
+        // Close mobile sidebar
+        if (window.innerWidth <= 768) {
+          const sidebar = safeGetElement("sidebar");
+          sidebar.classList.remove("mobile-open");
+        }
+      };
+
+      window.handleSearch = (v) => {
+        searchKeyword = v;
+        if (currentPath === "grid" || currentPath === "list") {
+          renderFileView();
+        } else {
+          renderTree();
+        }
+      };
+
+      window.copyToClipboard = () => {
+        const ta = document.createElement("textarea");
+        ta.value = window.currentCode || "";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        const b = safeGetElement("copy-btn");
+        if (b) {
+          b.innerHTML = '<i data-lucide="check" size="14"></i> COPIED!';
+          setTimeout(
+            () => (b.innerHTML = '<i data-lucide="copy" size="14"></i> COPY'),
+            2000,
+          );
+          if (typeof lucide !== "undefined") {
+            lucide.createIcons();
+          }
+        }
+      };
+
+      window.exportSelectedFiles = async function () {
+        if (selectedFiles.size === 0) return;
+
+        const zip = new JSZip();
+        logToAdmin(
+          `Đang xuất ${selectedFiles.size} files...`,
+          "text-indigo-400",
+        );
+
+        for (const path of selectedFiles) {
+          try {
+            const data = await ghFetch(
+              `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`,
+            );
+
+            if (data.encoding === "base64") {
+              const content = atob(data.content);
+              zip.file(path, content, { binary: false });
+            } else {
+              zip.file(path, data.content);
+            }
+          } catch (e) {
+            console.error("Không thể tải file:", path);
+          }
+        }
+
+        const content = await zip.generateAsync({ type: "blob" });
+        saveAs(
+          content,
+          `HSG_selected_${new Date().toISOString().slice(0, 10)}.zip`,
+        );
+        logToAdmin(`Xuất thành công!`, "text-emerald-400");
+      };
+
+      // Event listeners
+      document.addEventListener("click", () => {
+        const menu = safeGetElement("context-menu");
+        if (menu) menu.style.display = "none";
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key === "k") {
+          e.preventDefault();
+          const searchInput = safeGetElement("search-input");
+          if (searchInput) searchInput.focus();
+        }
+        if (e.key === "`" && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          toggleAdminPanel();
+        }
+        if (e.key === "Escape") {
+          const menu = safeGetElement("context-menu");
+          if (menu) menu.style.display = "none";
+        }
+      });
+
+      // Initialize
+      initSync();
+      initApp();
+
+      // Load saved view mode
+      const savedMode = localStorage.getItem("viewMode");
+      if (savedMode) {
+        viewMode = savedMode;
+      }
+    </script>
+  </body>
+</html>

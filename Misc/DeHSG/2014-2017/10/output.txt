@@ -1,0 +1,16 @@
+0 1 2 3 4 5 6 7 8 
+1 0 1 2 3 4 5 6 7 
+2 1 1 2 3 4 5 6 7 
+3 2 2 2 3 4 5 6 7 
+4 3 3 3 3 4 5 6 7 
+5 4 4 4 4 4 5 6 7 
+6 5 5 5 5 5 5 6 7 
+
+7
+aaaaaa -> Replace(6,h) -> aaaaah
+aaaaah -> Replace(5,g) -> aaaagh
+aaaagh -> Replace(4,f) -> aaafgh
+aaafgh -> Replace(3,e) -> aaefgh
+aaefgh -> Replace(2,d) -> adefgh
+adefgh -> Insert(1,c) -> acdefgh
+acdefgh -> Insert(1,b) -> abcdefgh

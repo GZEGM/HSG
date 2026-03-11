@@ -1,0 +1,31 @@
+// 10101
+// 01010
+// 10101
+// 01010
+// 10101
+
+#include <iostream>
+
+using namespace std;
+
+int main()
+{
+    int s = 10;
+
+    for (int i = 0; i < s; i++)
+    {
+        for (int j = 0; j < s; j++)
+        {
+            if ((i + j) % 2 == 0)
+            {
+                cout << "1";
+            }
+            else
+            {
+                cout << "0";
+            }
+        }
+        cout << endl;
+    }
+    return 0;
+}
